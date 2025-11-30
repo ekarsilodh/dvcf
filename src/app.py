@@ -175,7 +175,7 @@ with banner_cols[0]:
 with banner_cols[1]:
     banner_img = load_image("assets/trio_banner.png")
     if banner_img is not None:
-        st.image(banner_img, use_container_width=True)
+        st.image(banner_img, width='stretch')
     else:
         st.markdown(
             """
@@ -328,7 +328,7 @@ def run_full_pipeline(
         # Show the full permutation table so the user can see what was tried
         ts_df = pd.DataFrame(trio_stats)
         st.markdown("#### Tried trio assignments and their Mendelian violation counts")
-        st.dataframe(ts_df, use_container_width=True)
+        st.dataframe(ts_df, width='stretch')
     
         # Stop the rest of the analysis for this run
         st.stop()
@@ -391,7 +391,7 @@ st.sidebar.header("⚙️ Pipeline Controls")
 
 sidebar_img = load_image("assets/sidebar_avatar.png")
 if sidebar_img is not None:
-    st.sidebar.image(sidebar_img, caption="Trio SV Analyzer", use_container_width=True)
+    st.sidebar.image(sidebar_img, caption="Trio SV Analyzer", width='stretch')
 
 st.sidebar.markdown(
     """
@@ -483,7 +483,7 @@ if df is None:
     with empty_cols[1]:
         overview_img = load_image("assets/overview_illustration.png")
         if overview_img is not None:
-            st.image(overview_img, use_container_width=True)
+            st.image(overview_img, width='stretch')
 else:
     roles = st.session_state.get("roles", {})
     sex_calls = st.session_state.get("sex_calls", {})
@@ -506,7 +506,7 @@ else:
     with st.expander("🧬 Trio role search (Mendelian violations)", expanded=False):
         if trio_stats:
             trio_df = pd.DataFrame(trio_stats)
-            st.dataframe(trio_df, use_container_width=True)
+            st.dataframe(trio_df, width='stretch')
         else:
             st.write("No trio statistics found.")
 
@@ -520,7 +520,7 @@ else:
                     "X_het_rate": x_het_rates.get(s),
                 }
             )
-        st.dataframe(pd.DataFrame(rows), use_container_width=True)
+        st.dataframe(pd.DataFrame(rows), width='stretch')
 
     # Tabs for deeper exploration
     tab_overview, tab_svtype, tab_inheritance, tab_denovo, tab_raw = st.tabs(
@@ -548,7 +548,7 @@ else:
                 inner_cols = st.columns(2)
                 with inner_cols[0]:
                     st.markdown("**SVTYPE counts**")
-                    st.dataframe(sv_counts, use_container_width=True)
+                    st.dataframe(sv_counts, width='stretch')
                 with inner_cols[1]:
                     fig = plot_count_bar(
                         sv_counts,
@@ -557,7 +557,7 @@ else:
                         title="SVTYPE Distribution",
                         palette="set2",
                     )
-                    st.plotly_chart(fig, use_container_width=True)
+                    st.plotly_chart(fig, width='stretch')
 
             else:
                 st.warning("SVTYPE column not found in trio table.")
@@ -566,7 +566,7 @@ else:
                 size_counts = df["SIZE_PRIORITY"].value_counts().reset_index()
                 size_counts.columns = ["SIZE_PRIORITY", "COUNT"]
                 st.markdown("**Size priority distribution**")
-                st.dataframe(size_counts, use_container_width=True)
+                st.dataframe(size_counts, width='stretch')
                 fig = plot_count_bar(
                     size_counts,
                     x="SIZE_PRIORITY",
@@ -574,7 +574,7 @@ else:
                     title="Size Priority Distribution",
                     palette="pastel",
                 )
-                st.plotly_chart(fig, use_container_width=True)
+                st.plotly_chart(fig, width='stretch')
 
             else:
                 st.info("SIZE_PRIORITY not available (SV length annotation may have failed).")
@@ -585,7 +585,7 @@ else:
                 st.image(
                     overview_img,
                     caption="Conceptual view of trio SV analysis.",
-                    use_container_width=True,
+                    width='stretch',
                 )
 
     # -------------------------
@@ -645,7 +645,7 @@ else:
                     title="SVTYPE Counts (Filtered Variants)",
                     palette="set2",
                 )
-                st.plotly_chart(fig1, use_container_width=True)
+                st.plotly_chart(fig1, width='stretch')
             else:
                 st.info("No variants after filtering to show SVTYPE counts.")
     
@@ -701,10 +701,10 @@ else:
                         height=500,
                         legend_title_text="SVTYPE",
                     )
-                    st.plotly_chart(fig2, use_container_width=True)
+                    st.plotly_chart(fig2, width='stretch')
     
                     st.markdown("##### Underlying SVTYPE × Chromosome table")
-                    st.dataframe(sv_by_chrom, use_container_width=True)
+                    st.dataframe(sv_by_chrom, width='stretch')
                 else:
                     st.info("No SVTYPE × chromosome combinations to plot.")
             else:
@@ -748,7 +748,7 @@ else:
     
                 st.dataframe(
                     filtered.sort_values(sort_cols)[subset_cols],
-                    use_container_width=True,
+                    width='stretch',
                 )
             else:
                 st.info("No variants to display in the filtered table.")
@@ -766,7 +766,7 @@ else:
 
             cols_inh = st.columns(2)
             with cols_inh[0]:
-                st.dataframe(inh_counts, use_container_width=True)
+                st.dataframe(inh_counts, width='stretch')
             with cols_inh[1]:
                 fig = plot_count_bar(
                     inh_counts,
@@ -775,7 +775,7 @@ else:
                     title="Inheritance Class Distribution",
                     palette="set3",
                 )
-                st.plotly_chart(fig, use_container_width=True)
+                st.plotly_chart(fig, width='stretch')
 
             selected_inh = st.multiselect(
                 "Filter variants by inheritance class",
@@ -797,7 +797,7 @@ else:
                 if c in df_inh.columns
             ]
             st.write(f"Showing {len(df_inh):,} variants.")
-            st.dataframe(df_inh[subset_cols], use_container_width=True)
+            st.dataframe(df_inh[subset_cols], width='stretch')
         else:
             st.info("INHERITANCE column not found – inheritance annotation may have failed.")
 
@@ -821,7 +821,7 @@ else:
                 else:
                     df_dn = df_denovo
 
-                st.dataframe(df_dn, use_container_width=True)
+                st.dataframe(df_dn, width='stretch')
 
                 dn_tsv_path = os.path.join(out_dir, "de_novo_calls.tsv")
                 if os.path.exists(dn_tsv_path):
@@ -840,7 +840,7 @@ else:
                 st.image(
                     dn_img,
                     caption="Putative de novo SVs in the child.",
-                    use_container_width=True,
+                    width='stretch',
                 )
 
     # -------------------------
@@ -865,7 +865,7 @@ else:
             df_view = df_view[df_view["SVTYPE"].isin(sel_svtype)]
 
         st.write(f"Showing {len(df_view):,} variants after filters.")
-        st.dataframe(df_view, use_container_width=True)
+        st.dataframe(df_view, width='stretch')
 
         out_tsv = os.path.join(out_dir, "trio_table_annotated_streamlit.tsv")
         df_view.to_csv(out_tsv, sep="\t", index=False)
@@ -891,7 +891,7 @@ with footer_cols[0]:
     if footer_logo is not None:
         st.image(
             footer_logo,
-            use_container_width=True,
+            width='stretch',
         )
     else:
         st.markdown(
