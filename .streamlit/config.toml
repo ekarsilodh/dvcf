@@ -1,0 +1,18 @@
+[theme]
+base="dark"
+primaryColor="#7aa2f7"
+backgroundColor="#1a1b26"
+secondaryBackgroundColor="#24283b"
+textColor="#c0caf5"
+font="sans serif"
+
+[server]
+enableXsrfProtection=false
+enableCORS=false
+
+[browser]
+gatherUsageStats = false
+
+[client]
+toolbarMode = "minimal"   # hides Streamlit's big toolbar for a clean UI
+
