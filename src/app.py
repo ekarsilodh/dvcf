@@ -173,7 +173,7 @@ with banner_cols[0]:
     )
 
 with banner_cols[1]:
-    banner_img = load_image("../assets/trio_banner.png")
+    banner_img = load_image("assets/trio_banner.png")
     if banner_img is not None:
         st.image(banner_img, use_container_width=True)
     else:
@@ -186,7 +186,7 @@ with banner_cols[1]:
                 color:#1a1b26;
                 font-weight:600;
                 text-align:center;">
-                Place a banner at<br/><code>../assets/trio_banner.png</code><br/>to see it here.
+                Place a banner at<br/><code>assets/trio_banner.png</code><br/>to see it here.
             </div>
             """,
             unsafe_allow_html=True,
@@ -206,7 +206,7 @@ st.markdown(
 st.markdown("---")
 
 # Pipeline workflow diagram
-pipeline_img = load_image("../assets/Pipeline.png")
+pipeline_img = load_image("assets/Pipeline.png")
 if pipeline_img is not None:
     st.image(pipeline_img, width=1000)
 else:
@@ -481,7 +481,7 @@ if df is None:
     with empty_cols[0]:
         st.info("Awaiting VCF upload…")
     with empty_cols[1]:
-        overview_img = load_image("../assets/overview_illustration.png")
+        overview_img = load_image("assets/overview_illustration.png")
         if overview_img is not None:
             st.image(overview_img, use_container_width=True)
 else:
@@ -580,7 +580,7 @@ else:
                 st.info("SIZE_PRIORITY not available (SV length annotation may have failed).")
 
         with col_ov2:
-            overview_img = load_image("../assets/overview_illustration.png")
+            overview_img = load_image("assets/overview_illustration.png")
             if overview_img is not None:
                 st.image(
                     overview_img,
@@ -835,7 +835,7 @@ else:
             else:
                 st.info("No de novo dataframe available (AWK pass may have been skipped/failed).")
         with cols_dn[1]:
-            dn_img = load_image("../assets/denovo_illustration.png")
+            dn_img = load_image("assets/denovo_illustration.png")
             if dn_img is not None:
                 st.image(
                     dn_img,
@@ -887,7 +887,7 @@ st.markdown("---")
 footer_cols = st.columns([1, 3])
 
 with footer_cols[0]:
-    footer_logo = load_image("../assets/logo.png")
+    footer_logo = load_image("assets/logo.png")
     if footer_logo is not None:
         st.image(
             footer_logo,
@@ -904,7 +904,7 @@ with footer_cols[0]:
     font-weight:600;
     text-align:center;
     font-size:0.8rem;">
-    Add a logo at<br/><code>../assets/logo.png</code>
+    Add a logo at<br/><code>assets/logo.png</code>
 </div>
 """,
             unsafe_allow_html=True,
