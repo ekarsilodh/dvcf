@@ -1,52 +1,158 @@
-# VCF Trio Analyzer – Required Files & How to Run
+# 🧬 Delly Trio Structural Variant Explorer
+An interactive Streamlit dashboard for trio-based structural variant (SV) analysis, Mendelian validation, de novo detection, and clinical annotation using DELLY-generated VCF files.
 
-## Dependencies
-1. bedtools
-2. python
+Visit the app: 🔗 **https://dellyvcftrio.streamlit.app/**
 
----
-
-## To install bedtools, use:
-
-1. for macOS:
-
-```bash
-brew install bedtools
-```
-
-2. for linux:
-
-```bash
-sudo apt install bedtools
-```
+> **Note:** Due to Streamlit Cloud limitations, **annotation steps (BEDTools-based)** cannot run in the online app.  
+> For the full, annotation-enabled pipeline, visit the complete repository:  
+> 🔗 **https://github.com/ekarsilodh/Delly-SV-Trios**
 
 ---
 
-## Required Files
-1. **Input VCF file (trio VCF)**
-2. `clinvar_SV_clean.bed`
-3. `ClinGen_recurrent_CNV-hg38.bed`
-4. `ClinGen_haploinsufficiency_gene_GRCh38.bed`
-5. `ClinGen_triplosensitivity_gene_GRCh38.bed`
-6. `hg38_exons.bed`
-7. `hg38_genes.bed`
+## 🚀 Overview
+The **Delly Trio SV Explorer** is a visual, talk-ready dashboard for exploring DELLY multi-sample SV VCFs.  
+It provides:
+
+- **Automatic trio role inference**
+- **Sex calling using chrX heterozygosity**
+- **Mendelian violation analysis**
+- **De novo structural variant detection**
+- **SV-type and chromosome-level visualizations**
+- **Exportable tables and interactive filters**
+
+Ideal for genomics teaching, diagnostics, rapid SV interpretation, and trio-based variant exploration.
 
 ---
 
-## How to Run
+## 🎯 Key Features
+### 👨‍👩‍👧 Trio Inference
+- Finds best child–mother–father assignment  
+- Computes violations across all permutations  
+- Flags invalid or unrelated trios  
 
-```bash
-python vcf_analyzer.py --vcf /path/to/vcf/file --out /path/to/output/directory
-```
+### 🧬 Sex Calling
+- chrX heterozygosity rate–based inference  
+- Displays genotype composition of X-linked SVs  
 
-**Note:**
-- `--vcf` is **required**
-- `--out` is optional (defaults to `out/`)
+### 💥 De Novo SV Discovery
+- Identifies variants where both parents are `0/0` and child is `!= 0/0`  
+- Filterable by chromosome & SVTYPE  
+- Downloadable tables  
+
+### 📊 Visual Analytics
+- SVTYPE distribution with counts  
+- Chromosome-level density plots
+  
+### 🧪 Sample VCF Included
+Test the app without uploading your own data.
 
 ---
 
-## Example
+## 📦 Installation
+Clone the repository:
 
 ```bash
-python vcf_analyzer.py --vcf DellyVariation.vcf
+git clone https://github.com/ekarsilodh/delly-trio-sv-explorer.git
+cd delly-trio-sv-explorer
 ```
+
+Install dependencies:
+
+```bash
+pip install -r requirements.txt
+```
+
+---
+
+## ▶️ Running Locally
+```bash
+streamlit run src/app.py
+```
+
+Open in your browser at:  
+**http://localhost:8501/**
+
+---
+
+## ⚠️ Streamlit Cloud Limitations
+Streamlit Cloud does **not** allow installation of `bedtools` or system binaries.
+
+Therefore:
+- **Annotation**
+- **ClinGen gene mapping**
+- **Pathogenicity tiering**
+
+cannot run online.
+
+To use the **full version** of the project with annotation support:
+
+👉 **Visit the complete repository here:**  
+https://github.com/ekarsilodh/Delly-SV-Trios
+
+---
+
+## 🗂 Directory Structure
+```
+project/
+│
+├── src/
+│   ├── app.py
+│   ├── vcf_analyzer.py
+│   ├── plot.py
+│   └──data/
+│      └── sample_trio.vcf
+│
+├── assets/
+│   ├── logo.png
+│   ├── trio_banner.png
+│   ├── Pipeline.png
+│   └── overview_illustration.png
+│
+├── databases/ (local use only)
+│   ├── hg38_genes.bed
+│   ├── hg38_exons.bed
+│   ├── ClinGen_haploinsufficiency_gene_GRCh38.bed
+│   ├── ClinGen_triplosensitivity_gene_GRCh38.bed
+│   └── ClinGen_recurrent_CNV_GRCh38.bed
+│
+└── requirements.txt
+```
+
+---
+
+## 🎨 Streamlit Theme (config.toml)
+```toml
+[theme]
+base="dark"
+primaryColor="#ff4d4d"
+backgroundColor="#1a1b26"
+secondaryBackgroundColor="#24283b"
+textColor="#c0caf5"
+```
+
+---
+
+## 📥 Usage Workflow
+1. Upload your DELLY-generated multi-sample VCF  
+2. Let the app infer trio roles  
+3. Inspect SV distributions  
+4. Identify de novo events  
+5. Download filtered tables  
+6. (Local only) Run annotation and pathogenicity tiering  
+
+---
+
+## 👨‍💻 Author
+**Ekarsi Lodh**  
+MSc Bioinformatics
+College of Medicine and Health
+University of Birmingham  
+
+---
+
+## 📜 License
+MIT License — free to use, modify, and extend.
+
+---
+
+If you find this tool useful, please ⭐ star the repository!
