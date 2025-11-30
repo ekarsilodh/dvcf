@@ -1,0 +1,135 @@
+VCF Trio Structural Variant Analysis – Full Summary
+==================================================
+
+1. Trio Composition, Mendelian Search and Sex Inference
+   1.1 Trio role search (Mendelian violations across all permutations)
+       - child=NA19239, parent1=NA19238, parent2=NA19240 → violations=1662
+       - child=NA19239, parent1=NA19240, parent2=NA19238 → violations=1662
+       - child=NA19238, parent1=NA19239, parent2=NA19240 → violations=1831
+       - child=NA19238, parent1=NA19240, parent2=NA19239 → violations=1831
+       - child=NA19240, parent1=NA19239, parent2=NA19238 → violations=2
+       - child=NA19240, parent1=NA19238, parent2=NA19239 → violations=2
+
+       Selected trio = child=NA19240, parent1=NA19239, parent2=NA19238 
+        because this assignment had the smallest number of Mendelian
+         violations (2) among all permutations.
+
+   1.2 Trio members and sex calls
+       - Child   : NA19240 (sex=F)
+       - Parent1 : NA19239 (sex=M)
+       - Parent2 : NA19238 (sex=F)
+       - Father  : NA19239
+       - Mother  : NA19238
+
+       chrX heterozygosity rates used for sex calling:
+         * NA19239    : sex=M, X_het_rate=0.0675
+         * NA19238    : sex=F, X_het_rate=0.3842
+         * NA19240    : sex=F, X_het_rate=0.3956
+
+2. Global Structural Variant Counts (all samples, all SVs)
+SVTYPE  COUNT
+   DEL  11701
+   INS   5282
+   DUP    169
+
+3. Child-Centric Inheritance Classification
+   Each SV is labelled based on child + parents' genotypes.
+   Categories: de_novo, inherited_p1, inherited_p2, inherited_both,
+   reference_or_absent_child, unknown.
+
+              INHERITANCE  COUNT
+reference_or_absent_child   9544
+           inherited_both   2957
+             inherited_p2   2306
+             inherited_p1   2302
+                  unknown     41
+                  de_novo      2
+
+4. De Novo Variants
+chr14:22439017  REF=DEL00062209  ALT=N  QUAL=<DEL>  FILTER=DEL  SVTYPE=NA  NA19240_GT=0/0, NA19239_GT=10, NA19238_GT=0/0
+chr14:105745717  REF=DEL00064459  ALT=N  QUAL=<DEL>  FILTER=DEL  SVTYPE=NA  NA19240_GT=0/0, NA19239_GT=0, NA19238_GT=0/0
+
+
+5. Genome Annotation using hg38 genes, ClinVar/ClinGen
+   Annotation performed with bedtools intersect using:
+     - hg38 gene annotation BED                 : ../databases/hg38_genes.bed
+     - hg38 exon annotation BED                 : ../databases/hg38_exons.bed
+     - ClinGen HI genes BED (GRCh38)           : ../databases/ClinGen_haploinsufficiency_gene_GRCh38.bed
+     - ClinGen TS genes BED (GRCh38)           : ../databases/ClinGen_triplosensitivity_gene_GRCh38.bed
+     - ClinGen recurrent CNV BED (hg38)        : ../databases/ClinGen_recurrent_CNV_GRCh38.bed
+     - ClinVar pathogenic SV BED (GRCh38)      : ../databases/clinvar_SV_clean.bed
+   Summary of SVs with ≥1 overlap:
+     * SVs overlapping ≥1 hg38 gene            : 11919 / 17152
+     * SVs overlapping ≥1 hg38 exon            : 1248 / 17152
+     * SVs overlapping ≥1 ClinGen HI gene      : 1009 / 17152
+     * SVs overlapping ≥1 ClinGen TS gene      : 875 / 17152
+     * SVs overlapping ≥1 recurrent CNV region : 428 / 17152
+     * SVs overlapping ≥1 ClinVar pathogenic SV : 31 / 17152
+
+6. Clinically Prioritised SVs (VOI – Variants of Interest)
+   Using existing annotations, each SV present in the child is assigned
+   a PATHOGENICITY_TIER based on:
+     - SVTYPE (DEL, DUP, INS, etc.)
+     - Size category (SIZE_PRIORITY: high / moderate / low)
+     - Inheritance (INHERITANCE: de_novo, inherited_p1, etc.)
+     - Exon overlap (EXON_OVERLAP_COUNT)
+     - Overlap with ClinGen HI / TS genes and recurrent CNV regions.
+
+   Tier definitions (heuristic):
+     - Tier0_clinvar_pathogenic* : SVs overlapping ClinVar Pathogenic/
+                                   Likely pathogenic CNVs (GRCh38);
+                                   de novo subclass flagged.
+     - Tier1_recurrent_CNV* : SV overlapping a ClinGen recurrent CNV
+                              region (DEL/DUP, exonic), often known
+                              pathogenic microdeletion/duplication
+                              syndromes; de novo subclass flagged.
+     - Tier1_HI_del*        : Deletions overlapping ClinGen HI genes
+                              in exons; de novo subclass flagged.
+     - Tier1_TS_dup*        : Duplications overlapping ClinGen TS genes
+                              in exons; de novo subclass flagged.
+     - Tier2_exonic_large*  : Large/moderate exonic SVs without direct
+                              HI/TS evidence but potentially impactful.
+     - Tier3_gene_overlap   : SVs overlapping genes but not exons/
+                              dosage-sensitive categories.
+     - Tier4_other          : Remaining SVs.
+
+   Counts of Tier 0/1/2 variants:
+     * Tier2                          : 6951
+     * Tier1                          : 617
+     * Tier0                          : 14
+
+   A detailed table of Tier 0/1/2 variants is written to:
+     - clinically_prioritised_SVs.tsv
+
+7. Output Files
+   - trio_table.tsv              : Parsed AWK table with GTs and SV annotations.
+   - svtype_counts.tsv           : Global count of SVTYPEs.
+   - de_novo_calls.txt / .tsv    : De novo candidate SVs (0/0 parents, child non-ref).
+   - clinically_prioritised_SVs.tsv : Child's SVs passing size/region filters.
+   - sv_for_bedtools.bed         : BED intervals used for all bedtools annotations.
+   - bedtools_hg38_genes_raw.tsv : Raw SV × gene overlaps.
+   - hg38_exons_raw.tsv / _counts.tsv : Raw + counts for exon overlaps.
+   - clingen_hi_raw.tsv / _counts.tsv : Raw + counts for ClinGen HI genes.
+   - clingen_ts_raw.tsv / _counts.tsv : Raw + counts for ClinGen TS genes.
+   - clingen_recurrent_cnv_raw.tsv / _counts.tsv : Raw + counts for recurrent CNVs.
+   - report.txt                  : Compact summary (key results).
+   - summary_full.txt            : Full overview of findings.
+
+8. Visualisation Outputs (Figures)
+     - fig1_svtype_counts.png
+         Global distribution of structural variant types (DEL, INS, DUP).
+     - fig2_inheritance_counts.png
+         Inheritance pattern of SVs in the child, showing de novo and
+         inherited categories (inherited_p1, inherited_p2, inherited_both,
+         reference_or_absent_child, unknown).
+     - fig3_annotation_overlap.png
+         Number of SVs with ≥1 overlap with hg38 exons, ClinGen
+         haploinsufficiency (HI) genes, triplosensitivity (TS) genes,
+         recurrent CNV regions, and ClinVar pathogenic structural variants.
+     - fig4_pathogenicity_tiers.png
+         Distribution of clinically prioritised SVs by PATHOGENICITY_TIER
+         (e.g. Tier0_clinvar_pathogenic, Tier1_HI_del, Tier1_recurrent_CNV,
+         Tier2_exonic_large, Tier2_exonic_large_de_novo).
+     - fig5_per_chrom_svtype.png
+         Overview of number of SV type per chromosome.
+

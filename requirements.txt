@@ -1,0 +1,10 @@
+pandas
+numpy
+pybedtools
+matplotlib
+pysam
+cython
+python-dateutil
+requests
+tqdm
+argparse

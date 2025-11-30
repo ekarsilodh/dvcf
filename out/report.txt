@@ -1,0 +1,73 @@
+===== TRIO ROLE SEARCH (Mendelian violations) =====
+Assuming child=NA19239, parent1=NA19238, parent2=NA19240 → violations=1662
+Assuming child=NA19239, parent1=NA19240, parent2=NA19238 → violations=1662
+Assuming child=NA19238, parent1=NA19239, parent2=NA19240 → violations=1831
+Assuming child=NA19238, parent1=NA19240, parent2=NA19239 → violations=1831
+Assuming child=NA19240, parent1=NA19239, parent2=NA19238 → violations=2
+Assuming child=NA19240, parent1=NA19238, parent2=NA19239 → violations=2
+
+Selected trio = child=NA19240, parent1=NA19239, parent2=NA19238 because this 
+assignment had the smallest number of Mendelian violations 
+(2) among all permutations.
+
+===== TRIO ROLES =====
+Child    : NA19240
+Parent1  : NA19239
+Parent2  : NA19238
+
+===== COLUMN NUMBERS =====
+Child col   : 18
+Parent1 col : 17
+Parent2 col : 16
+
+===== SVTYPE COUNTS =====
+  SVTYPE  COUNT
+0    DEL  11701
+1    INS   5282
+2    DUP    169
+
+===== De Novo Calls =====
+Written to: ../out/de_novo_calls.txt and ../out/de_novo_calls.tsv
+
+=== De Novo Variants ===
+chr14:22439017  REF=DEL00062209  ALT=N  QUAL=<DEL>  FILTER=DEL  SVTYPE=NA  NA19240_GT=0/0, NA19239_GT=10, NA19238_GT=0/0
+chr14:105745717  REF=DEL00064459  ALT=N  QUAL=<DEL>  FILTER=DEL  SVTYPE=NA  NA19240_GT=0/0, NA19239_GT=0, NA19238_GT=0/0
+
+
+===== ANNOTATION using bedtools + hg38 / Clinvar / ClinGen =====
+Total SVs analysed                       : 17152
+hg38 gene annotation BED                 : ../databases/hg38_genes.bed
+hg38 exon annotation BED                 : ../databases/hg38_exons.bed
+ClinGen HI genes BED (GRCh38)            : ../databases/ClinGen_haploinsufficiency_gene_GRCh38.bed
+ClinGen TS genes BED (GRCh38)            : ../databases/ClinGen_triplosensitivity_gene_GRCh38.bed
+ClinGen recurrent CNV BED (hg38)         : ../databases/ClinGen_recurrent_CNV_GRCh38.bed
+ClinVar pathogenic SV BED (GRCh38)       : ../databases/clinvar_SV_clean.bed
+
+SVs overlapping ≥1 hg38 gene             : 11919 / 17152
+SVs overlapping ≥1 hg38 exon             : 1248 / 17152
+SVs overlapping ≥1 ClinGen HI gene       : 1009 / 17152
+SVs overlapping ≥1 ClinGen TS gene       : 875 / 17152
+SVs overlapping ≥1 recurrent CNV region  : 428 / 17152
+SVs overlapping ≥1 ClinVar pathogenic SV : 31 / 17152
+
+
+===== CLINICALLY PRIORITISED SVs based on PATHOGENICITY TIERS =====
+Output file: clinically_prioritised_SVs.tsv
+Tier counts (Tier 0/1/2 only):
+  Tier2                          : 6951
+  Tier1                          : 617
+  Tier0                          : 14
+
+Top candidate variants (first 10):
+CHROM       POS   END_INT SVTYPE  SVLEN_BP       GENE_LIST    INHERITANCE PATHOGENICITY_TIER                        CLINVAR_PHENOTYPE
+ chr1 145889716 145889717    INS         1 ENSG00000244619   inherited_p2              Tier0 Radial aplasia-thrombocytopenia syndrome
+chr17  37418845  37422301    DEL      3456          TADA2A   inherited_p1              Tier0       Chromosome 17q12 deletion syndrome
+chr22  19257695  19257728    DEL        33 CLTCL1,KRT18P62   inherited_p2              Tier0                        DiGeorge syndrome
+chr22  19260392  19260580    DEL       188          CLTCL1   inherited_p2              Tier0                        DiGeorge syndrome
+chr22  19275928  19275953    DEL        25          CLTCL1   inherited_p2              Tier0                        DiGeorge syndrome
+chr22  19478568  19478586    DEL        18            UFD1   inherited_p1              Tier0                        DiGeorge syndrome
+chr22  19561240  19561241    INS         1       LINC00895 inherited_both              Tier0                        DiGeorge syndrome
+chr22  19781975  19781976    INS         1            TBX1 inherited_both              Tier0                        DiGeorge syndrome
+chr22  20108791  20108792    INS         1           DGCR8   inherited_p2              Tier0                        DiGeorge syndrome
+chr22  20355899  20361523    DEL      5624 ENSG00000290950   inherited_p1              Tier0                        DiGeorge syndrome
+
