@@ -10,6 +10,31 @@ from PIL import Image
 import vcf_analyzer as vca 
 import plotly.express as px
 
+# -------------------------------
+#   GLOBAL PERSISTENT VIEW COUNTER
+# -------------------------------
+COUNT_FILE = "view_count.txt"
+
+def load_count():
+    if not os.path.exists(COUNT_FILE):
+        with open(COUNT_FILE, "w") as f:
+            f.write("0")
+        return 0
+    with open(COUNT_FILE, "r") as f:
+        return int(f.read().strip())
+
+def save_count(c):
+    with open(COUNT_FILE, "w") as f:
+        f.write(str(c))
+
+# Load → increment → save
+total_views = load_count() + 1
+save_count(total_views)
+
+# Show in sidebar
+st.sidebar.markdown("### 👁️ App Views")
+st.sidebar.info(f"Total views: **{total_views}**")
+
 # Nice qualitative palettes (Seaborn-like via Plotly)
 PALETTES = {
     "set2": px.colors.qualitative.Set2,
