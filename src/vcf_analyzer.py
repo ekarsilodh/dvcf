@@ -44,18 +44,12 @@ Outputs:
 """
 
 import argparse
-import subprocess
 import tempfile
 import pandas as pd
 import os
 import sys
 from itertools import permutations
 from typing import Optional, Dict
-
-try:
-    from pybedtools import BedTool
-except ImportError:
-    BedTool = None
 
 
 ############################################
@@ -732,264 +726,6 @@ def annotate_inheritance(df: pd.DataFrame, child: str, p1: str, p2: str) -> pd.D
     return df
 
 
-# 9. Annotation Using bedtools (via pybedtools)
-
-def bedtools_annotate_all_variants(df: pd.DataFrame, out_dir: str) -> pd.DataFrame:
-    """
-    Use bedtools (via pybedtools) to annotate every SV with overlaps to:
-      - hg38 gene bodies (HG38_GENES_BED) -> GENE_OVERLAP_COUNT and GENE_LIST
-      - hg38 exons (HG38_EXONS_BED) -> EXON_OVERLAP_COUNT
-      - ClinGen HI genes (CLINGEN_HI_GENES_BED) -> CLINGEN_HI_OVERLAP_COUNT
-      - ClinGen TS genes (CLINGEN_TS_GENES_BED) -> CLINGEN_TS_OVERLAP_COUNT
-      - ClinGen recurrent CNVs (CLINGEN_RECURRENT_CNV_BED) -> CLINGEN_REC_CNV_OVERLAP_COUNT
-      - ClinVar pathogenic / likely pathogenic SVs (CLINVAR_SV_BED) -> CLINVAR_OVERLAP_COUNT
-
-    All coordinates are assumed to be hg38/GRCh38, matching the input VCF.
-    Raw intersect outputs are written under out_dir for inspection.
-    """
-
-    df = df.copy()
-
-    # Ensure numeric positions/ends
-    if "POS_INT" not in df.columns:
-        df["POS_INT"] = pd.to_numeric(df["POS"], errors="coerce")
-
-    if "END_INT" not in df.columns:
-        if "END" in df.columns:
-            df["END_INT"] = pd.to_numeric(df["END"], errors="coerce")
-        else:
-            df["END_INT"] = df["POS_INT"]
-
-    # Create a unique row id to map back intersect results
-    df["ROW_ID"] = range(len(df))
-
-    bed_input = os.path.join(out_dir, "sv_for_bedtools.bed")
-    with open(bed_input, "w") as bed_out:
-        for _, row in df.iterrows():
-            if pd.isna(row["POS_INT"]):
-                continue
-            chrom = str(row["CHROM"])
-            try:
-                pos = int(row["POS_INT"])
-            except Exception:
-                continue
-            end = row["END_INT"]
-            if pd.isna(end):
-                end = pos
-            else:
-                try:
-                    end = int(end)
-                except Exception:
-                    end = pos
-            # BED: 0-based start, 1-based end
-            start0 = max(pos - 1, 0)
-            bed_out.write(f"{chrom}\t{start0}\t{end}\t{int(row['ROW_ID'])}\n")
-
-    def annotate_bed(bed_path: str, count_col: str, prefix: str):
-        """
-        Run bedtools -c (via pybedtools) and store counts in df[count_col].
-        """
-        if not bed_path:
-            df[count_col] = 0
-            return
-
-        if not os.path.exists(bed_path):
-            print(f"[WARN] BED file not found: {bed_path}; skipping {count_col}.")
-            df[count_col] = 0
-            if prefix == "clinvar_sv":
-                df["CLINVAR_PHENOTYPE"] = ""
-            return
-
-        if BedTool is None:
-            print("[WARN] pybedtools is not installed; skipping", count_col)
-            df[count_col] = 0
-            if prefix == "clinvar_sv":
-                df["CLINVAR_PHENOTYPE"] = ""
-            return
-
-        try:
-            a = BedTool(bed_input)
-            b = BedTool(bed_path)
-
-            # Raw overlaps (-wa -wb)
-            raw_file = os.path.join(out_dir, f"{prefix}_raw.tsv")
-            a.intersect(b, wa=True, wb=True).saveas(raw_file)
-
-            # Counts (-c)
-            counts_file = os.path.join(out_dir, f"{prefix}_counts.tsv")
-            a.intersect(b, c=True).saveas(counts_file)
-
-            counts = {}
-            with open(counts_file, "r") as cf:
-                for line in cf:
-                    parts = line.rstrip().split("\t")
-                    if len(parts) < 5:
-                        continue
-                    try:
-                        row_id = int(parts[3])
-                        cnt = int(parts[4])
-                    except ValueError:
-                        continue
-                    counts[row_id] = cnt
-
-            df[count_col] = df["ROW_ID"].map(lambda rid: counts.get(rid, 0)).astype(int)
-
-            # If this is the ClinVar SV BED, also pull in the 5th BED column for phenotype
-            if prefix == "clinvar_sv":
-                clinvar_bed5_map = {}
-                with open(raw_file, "r") as raw_fh2:
-                    for line in raw_fh2:
-                        parts = line.rstrip().split("\t")
-                        if len(parts) < 9:
-                            continue
-                        try:
-                            row_id = int(parts[3])
-                        except ValueError:
-                            continue
-                        bed_col5 = parts[8]
-                        if not bed_col5:
-                            continue
-                        clinvar_bed5_map.setdefault(row_id, set()).add(bed_col5)
-
-                def _join_bed5(rid: int) -> str:
-                    vals = clinvar_bed5_map.get(rid)
-                    if not vals:
-                        return ""
-                    return ";".join(sorted(vals))
-
-                df["CLINVAR_PHENOTYPE"] = df["ROW_ID"].map(_join_bed5)
-
-        except Exception as e:
-            print(f"[WARN] pybedtools intersect failed for {bed_path}: {e}")
-            df[count_col] = 0
-            if prefix == "clinvar_sv":
-                df["CLINVAR_PHENOTYPE"] = ""
-
-    # 1) Gene-level annotation: need both list and counts.
-    if HG38_GENES_BED and os.path.exists(HG38_GENES_BED):
-        genes_raw = os.path.join(out_dir, "hg38_genes_raw.tsv")
-        if BedTool is None:
-            print("[WARN] pybedtools is not installed; skipping hg38 gene annotation.")
-            df["GENE_LIST"] = ""
-            df["GENE_OVERLAP_COUNT"] = 0
-        else:
-            try:
-                a = BedTool(bed_input)
-                b = BedTool(HG38_GENES_BED)
-                a.intersect(b, wa=True, wb=True).saveas(genes_raw)
-
-                gene_hits = {}
-                with open(genes_raw, "r") as gh:
-                    for line in gh:
-                        parts = line.rstrip().split("\t")
-                        if len(parts) < 8:
-                            continue
-                        try:
-                            row_id = int(parts[3])
-                        except ValueError:
-                            continue
-                        gene_name = parts[7]
-                        if gene_name == ".":
-                            continue
-                        gene_hits.setdefault(row_id, set()).add(gene_name)
-
-                df["GENE_LIST"] = df["ROW_ID"].map(
-                    lambda rid: ",".join(sorted(gene_hits.get(rid, set()))) if rid in gene_hits else ""
-                )
-                df["GENE_OVERLAP_COUNT"] = df["ROW_ID"].map(
-                    lambda rid: len(gene_hits.get(rid, set()))
-                ).astype(int)
-
-            except Exception as e:
-                print(f"[WARN] pybedtools intersect failed for hg38 genes: {e}")
-                df["GENE_LIST"] = ""
-                df["GENE_OVERLAP_COUNT"] = 0
-    else:
-        print("[WARN] hg38 gene BED not found; skipping gene-level annotation.")
-        df["GENE_LIST"] = ""
-        df["GENE_OVERLAP_COUNT"] = 0
-
-    # 2) Exon-level annotation (hg38 exons): counts only
-    annotate_bed(HG38_EXONS_BED, "EXON_OVERLAP_COUNT", "hg38_exons")
-
-    # 3) ClinGen HI / TS genes and recurrent CNV regions: counts only
-    annotate_bed(CLINGEN_HI_GENES_BED, "CLINGEN_HI_OVERLAP_COUNT", "clingen_hi")
-    annotate_bed(CLINGEN_TS_GENES_BED, "CLINGEN_TS_OVERLAP_COUNT", "clingen_ts")
-    annotate_bed(CLINGEN_RECURRENT_CNV_BED, "CLINGEN_REC_CNV_OVERLAP_COUNT", "clingen_recurrent_cnv")
-
-    # 4) ClinVar pathogenic / likely pathogenic SVs
-    annotate_bed(CLINVAR_SV_BED, "CLINVAR_OVERLAP_COUNT", "clinvar_sv")
-
-    return df
-
-
-# 10. Pathogenicity-style flagging (Variants of Interest)
-
-def flag_variants_of_interest(df: pd.DataFrame, child: str) -> pd.DataFrame:
-    """
-    Mark and keep variants that look clinically interesting.
-
-    Uses simple tier labels (Tier0/1/2) based on ClinVar, ClinGen,
-    size, exons and inheritance. Returns a filtered, sorted df.
-    """
-
-    df = df.copy()
-
-    # Only consider variants where child is non-reference
-    child_gt_col = f"{child}_GT"
-    alt_gts = {"0/1", "1/0", "0|1", "1|0", "1/1", "1|1", "1"}
-    if child_gt_col not in df.columns:
-        raise ValueError(f"Child GT column not found: {child_gt_col}")
-    df = df[df[child_gt_col].isin(alt_gts)].copy()
-
-
-    def get_count(row, col):
-        v = row.get(col)
-        try:
-            v = int(v)
-        except Exception:
-            return 0
-        return v
-
-    tiers = []
-    for _, row in df.iterrows():
-        tier = 2  # default "lower" interest
-
-        # highest interest if overlapping ClinVar pathogenic SV
-        if get_count(row, "CLINVAR_OVERLAP_COUNT") > 0 or row.get("CLINVAR_PHENOTYPE", "") != "":
-            tier = 0
-        # else high if overlapping ClinGen dosage-sensitive genes or recurrent CNVs
-        elif (
-            get_count(row, "CLINGEN_HI_OVERLAP_COUNT") > 0
-            or get_count(row, "CLINGEN_TS_OVERLAP_COUNT") > 0
-            or get_count(row, "CLINGEN_REC_CNV_OVERLAP_COUNT") > 0
-        ):
-            tier = 1
-        # else bump interest if big + gene/exon overlap + de_novo
-        elif (
-            get_count(row, "GENE_OVERLAP_COUNT") > 0
-            or get_count(row, "EXON_OVERLAP_COUNT") > 0
-        ):
-            if row.get("SIZE_PRIORITY") in ("high", "moderate") and row.get("INHERITANCE") == "de_novo":
-                tier = 1
-
-        tiers.append(tier)
-
-    df["PATHOGENICITY_TIER"] = [
-        f"Tier{t}" for t in tiers
-    ]
-
-    # keep interesting ones
-    df = df[df["PATHOGENICITY_TIER"].isin(["Tier0", "Tier1", "Tier2"])]
-
-    # sort: Tier0 first, then Tier1, etc.
-    df["TIER_RANK"] = df["PATHOGENICITY_TIER"].map({"Tier0": 0, "Tier1": 1, "Tier2": 2}).fillna(99)
-    df = df.sort_values(["TIER_RANK", "CHROM", "POS_INT"], ascending=[True, True, True])
-    df.drop(columns=["TIER_RANK"], inplace=True)
-
-    return df
-
-
 ############################################
 # MAIN SCRIPT
 ############################################
@@ -1136,10 +872,7 @@ def main():
 
     df = add_sv_length_and_size_category(df)
     df = annotate_inheritance(df, child=child, p1=p1, p2=p2)
-
-    # Genome annotation via bedtools (hg38 genes/exons + ClinGen dosage/CNVs) on ALL SVs
-    df = bedtools_annotate_all_variants(df, args.out)
-
+    
     # child non-ref subset (these are the variants actually present in child)
     child_gt_col = f"{child}_GT"
     alt_gts = {"0/1", "1/0", "0|1", "1|0", "1/1", "1|1", "1"}
@@ -1155,33 +888,6 @@ def main():
     print("\n===== SVTYPE COUNTS =====")
     print(str(sv_counts))
     
-    # ------------------------------------------
-    # Pathogenicity-style variants of interest
-    # ------------------------------------------
-    print("\n[INFO] Annotation completed. Filtering variants of interest")
-
-    df_voi = flag_variants_of_interest(df, child=child)
-    voi_path = os.path.join(args.out, "clinically_prioritised_SVs.tsv")
-    df_voi.to_csv(voi_path, sep="\t", index=False)
-    print(f"\nClinically prioritised SVs (Tier 0/1/2) written to: {voi_path}")
-
-    if not df_voi.empty:
-        voi_tier_counts = df_voi["PATHOGENICITY_TIER"].value_counts().reset_index()
-        voi_tier_counts.columns = ["PATHOGENICITY_TIER", "COUNT"]
-    else:
-        voi_tier_counts = pd.DataFrame(columns=["PATHOGENICITY_TIER", "COUNT"])
-    
-    # ------------------------------
-    # Overall Counts from Bedtools
-    # ------------------------------
-    total_sv = len(df)
-
-    gene_ov_sv = int((df["GENE_OVERLAP_COUNT"] > 0).sum()) if "GENE_OVERLAP_COUNT" in df.columns else None
-    exon_ov_sv = int((df["EXON_OVERLAP_COUNT"] > 0).sum()) if "EXON_OVERLAP_COUNT" in df.columns else None
-    hi_ov_sv = int((df["CLINGEN_HI_OVERLAP_COUNT"] > 0).sum()) if "CLINGEN_HI_OVERLAP_COUNT" in df.columns else None
-    ts_ov_sv = int((df["CLINGEN_TS_OVERLAP_COUNT"] > 0).sum()) if "CLINGEN_TS_OVERLAP_COUNT" in df.columns else None
-    rec_cnv_ov_sv = int((df["CLINGEN_REC_CNV_OVERLAP_COUNT"] > 0).sum()) if "CLINGEN_REC_CNV_OVERLAP_COUNT" in df.columns else None
-    clinvar_ov_sv = int((df["CLINVAR_OVERLAP_COUNT"] > 0).sum()) if "CLINVAR_OVERLAP_COUNT" in df.columns else None
 
     # Inheritance category counts
     inheritance_counts = df["INHERITANCE"].value_counts(dropna=False).reset_index()
