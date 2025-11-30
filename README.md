@@ -52,8 +52,8 @@ Test the app without uploading your own data.
 Clone the repository:
 
 ```bash
-git clone https://github.com/ekarsilodh/delly-trio-sv-explorer.git
-cd delly-trio-sv-explorer
+git clone https://github.com/ekarsilodh/dvcf.git
+cd dvcf
 ```
 
 Install dependencies:
@@ -66,7 +66,7 @@ pip install -r requirements.txt
 
 ## ▶️ Running Locally
 ```bash
-streamlit run src/app.py
+streamlit run src/app_local.py
 ```
 
 Open in your browser at:  
@@ -97,7 +97,9 @@ project/
 │
 ├── src/
 │   ├── app.py
+│   ├── app_local.py
 │   ├── vcf_analyzer.py
+│   ├── vcf_analyzer_local.py
 │   ├── plot.py
 │   └──data/
 │      └── sample_trio.vcf
