@@ -1,7 +1,6 @@
 # app.py
 import os
-import tempfile
-import subprocess
+
 from typing import Dict, List, Optional, Tuple
 
 import pandas as pd
@@ -237,35 +236,28 @@ def run_first_awk_pass(
     parent2: str,
 ) -> str:
     """
-    Run the first AWK parsing pass (using vca.AWK_PARSE) to generate trio_table.tsv.
+    Run the first parsing pass (now pure Python via vca.parse_vcf_trio_table)
+    to generate trio_table.tsv.
+
     Returns path to trio_table.tsv.
     """
+
+    # Make sure the output directory exists
+    os.makedirs(out_dir, exist_ok=True)
+
     parsed_tsv = os.path.join(out_dir, "trio_table.tsv")
 
-    with tempfile.NamedTemporaryFile("w", delete=False) as tf:
-        tf.write(vca.AWK_PARSE)
-        awkfile = tf.name
+    # Call the pure-Python parser instead of awk
+    trio_df = vca.parse_vcf_trio_table(
+        vcf_path=vcf_path,
+        trio_samples=[child, parent1, parent2],
+        pass_only=True,     # same behaviour as the awk script
+    )
 
-    with open(parsed_tsv, "w") as o:
-        subprocess.run(
-            [
-                "awk",
-                "-v",
-                f"sample1={child}",
-                "-v",
-                f"sample2={parent1}",
-                "-v",
-                f"sample3={parent2}",
-                "-f",
-                awkfile,
-                vcf_path,
-            ],
-            stdout=o,
-            check=True,
-        )
+    # Write exactly the same TSV that awk would have produced
+    trio_df.to_csv(parsed_tsv, sep="\t", index=False)
 
     return parsed_tsv
-
 
 def compute_sample_to_col(vcf_path: str) -> Dict[str, int]:
     """
@@ -356,24 +348,7 @@ def run_full_pipeline(
     df = vca.annotate_inheritance(df, child=child, p1=p1, p2=p2)
 
     # 8) bedtools annotations (optional)
-    try:
-        df = vca.bedtools_annotate_all_variants(df, out_dir)
-        # ---- Create clinically_prioritised_SVs.tsv in the SAME out_dir ----
-        df_voi = vca.flag_variants_of_interest(df, child)
-        voi_path = os.path.join(out_dir, "clinically_prioritised_SVs.tsv")
-        df_voi.to_csv(voi_path, sep="\t", index=False)
         
-        # Save for UI use
-        st.session_state["df_voi"] = df_voi
-        st.session_state["voi_path"] = voi_path
-
-        bedtools_ok = True
-    except Exception as e:
-        bedtools_ok = False
-        st.warning(
-            f"bedtools annotation skipped (bedtools or BED files/BED paths problem): {e}"
-        )
-    
     # 9) De novo AWK pass
     df_denovo = None
     try:
@@ -404,7 +379,6 @@ def run_full_pipeline(
     st.session_state["sex_calls"] = sex_calls
     st.session_state["x_het_rates"] = x_het_rates
     st.session_state["out_dir"] = out_dir
-    st.session_state["bedtools_ok"] = bedtools_ok
     st.session_state["trio_stats"] = trio_stats
 
     return df, df_denovo, roles, sex_calls, out_dir
@@ -516,7 +490,6 @@ else:
     x_het_rates = st.session_state.get("x_het_rates", {})
     trio_stats = st.session_state.get("trio_stats", [])
     out_dir = st.session_state.get("out_dir", "")
-    bedtools_ok = st.session_state.get("bedtools_ok", False)
 
     child = roles.get("child")
     p1 = roles.get("parent1")
@@ -550,14 +523,13 @@ else:
         st.dataframe(pd.DataFrame(rows), use_container_width=True)
 
     # Tabs for deeper exploration
-    tab_overview, tab_svtype, tab_inheritance, tab_denovo, tab_raw, tab_annot = st.tabs(
+    tab_overview, tab_svtype, tab_inheritance, tab_denovo, tab_raw = st.tabs(
         [
             "📊 Overview",
             "🧩 SV Type Distribution",
             "👨‍👩‍👧 Inheritance Patterns",
             "🌟 De novo Variants",
             "📋 Raw Variant Table",
-            "🧪 Annotation & Tiers",
         ]
     )
 
@@ -606,17 +578,6 @@ else:
 
             else:
                 st.info("SIZE_PRIORITY not available (SV length annotation may have failed).")
-
-            if bedtools_ok:
-                st.markdown(
-                    "✅ <b>bedtools</b>-based annotations were applied.",
-                    unsafe_allow_html=True,
-                )
-            else:
-                st.markdown(
-                    "⚠️ <b>bedtools</b>-based annotations were skipped or failed.",
-                    unsafe_allow_html=True,
-                )
 
         with col_ov2:
             overview_img = load_image("../assets/overview_illustration.png")
@@ -916,119 +877,7 @@ else:
                 mime="text/tab-separated-values",
             )
 
-    # -------------------------
-    # Annotation & Pathogenicity Tiers tab
-    # -------------------------
-    with tab_annot:
-        st.markdown("### 🧪 Annotation & Pathogenicity Tiers")
     
-        df_full = st.session_state.get("analysis_df")
-        df_voi = st.session_state.get("df_voi")
-        voi_path = st.session_state.get("voi_path")
-        out_dir = st.session_state.get("out_dir")
-    
-        if df_full is None:
-            st.info("Run the analysis first.")
-            st.stop()
-    
-        # -------------------------------------------------
-        # Filters (Chromosome + SVTYPE)
-        # -------------------------------------------------
-        st.markdown("#### 🔍 Filters")
-        chroms = sorted(df_full["CHROM"].dropna().unique().tolist())
-        svtypes = sorted(df_full["SVTYPE"].dropna().unique().tolist())
-    
-        fc, ft = st.columns(2)
-        with fc:
-            sel_chrom = st.multiselect(
-                "Filter by Chromosome",
-                chroms,
-                chroms,
-                key="annot_filter_chrom"
-            )
-        with ft:
-            sel_sv = st.multiselect(
-                "Filter by SVTYPE",
-                svtypes,
-                svtypes,
-                key="annot_filter_svtype"
-            )
-    
-        df_filtered = df_full[
-            df_full["CHROM"].isin(sel_chrom) &
-            df_full["SVTYPE"].isin(sel_sv)
-        ].copy()
-    
-        # -------------------------------------------------
-        # Annotation table
-        # -------------------------------------------------
-        st.markdown("### 📘 Full Annotation Table")
-    
-        annotation_cols = [
-            "CHROM","POS","END_INT","SVTYPE","SVLEN_BP","SIZE_PRIORITY",
-            "GENE_LIST","GENE_OVERLAP_COUNT",
-            "EXON_OVERLAP_COUNT",
-            "CLINGEN_HI_OVERLAP_COUNT",
-            "CLINGEN_TS_OVERLAP_COUNT",
-            "CLINGEN_REC_CNV_OVERLAP_COUNT",
-            "CLINVAR_OVERLAP_COUNT",
-            "CLINVAR_PHENOTYPE",
-            "INHERITANCE",
-            "PATHOGENICITY_TIER",
-        ]
-        annotation_cols = [c for c in annotation_cols if c in df_filtered.columns]
-    
-        st.dataframe(df_filtered[annotation_cols], use_container_width=True)
-    
-        # -------------------------------------------------
-        # Pathogenicity tiers (Tier0/1/2)
-        # -------------------------------------------------
-        st.markdown("### ⭐ Clinically Prioritised SVs (Tier 0 / 1 / 2)")
-    
-        if df_voi is None or df_voi.empty:
-            st.warning("No Tier0/1/2 variants produced for this VCF.")
-        else:
-            st.success(f"Found **{len(df_voi)}** clinically prioritised variants.")
-    
-            tier_counts = df_voi["PATHOGENICITY_TIER"].value_counts().reset_index()
-            tier_counts.columns = ["PATHOGENICITY_TIER", "COUNT"]
-    
-            t1, t2 = st.columns(2)
-            with t1:
-                st.dataframe(tier_counts, use_container_width=True)
-            with t2:
-                fig = plot_count_bar(
-                    tier_counts,
-                    x="PATHOGENICITY_TIER",
-                    y="COUNT",
-                    title="Pathogenicity Tier Breakdown",
-                    palette="bold",
-                )
-                st.plotly_chart(fig, use_container_width=True)
-    
-            # Tier filter
-            selected_tiers = st.multiselect(
-                "Filter by tier",
-                tier_counts["PATHOGENICITY_TIER"].tolist(),
-                tier_counts["PATHOGENICITY_TIER"].tolist(),
-                key="annot_filter_tier"
-            )
-
-            df_tier_filtered = df_voi[df_voi["PATHOGENICITY_TIER"].isin(selected_tiers)]
-    
-            st.markdown(f"Showing **{len(df_tier_filtered)}** prioritised variants")
-            st.dataframe(df_tier_filtered, use_container_width=True)
-    
-            # Download button
-            if voi_path and os.path.exists(voi_path):
-                with open(voi_path, "rb") as f:
-                    st.download_button(
-                        "⬇️ Download clinically_prioritised_SVs.tsv",
-                        data=f,
-                        file_name="clinically_prioritised_SVs.tsv",
-                        mime="text/tab-separated-values",
-                    )
-
 
 # -------------------------
 # Footer: logo + author credit
