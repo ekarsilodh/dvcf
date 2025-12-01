@@ -1,4 +1,7 @@
 # 🧬 Delly Trio Structural Variant Explorer
+
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.17781941.svg)](https://doi.org/10.5281/zenodo.17781941)
+
 An interactive Streamlit dashboard for trio-based structural variant (SV) analysis, Mendelian validation, de novo detection, and clinical annotation using DELLY-generated VCF files.
 
 Visit the app: 🔗 **https://dellyvcftrio.streamlit.app/**
@@ -157,4 +160,5 @@ MIT License — free to use, modify, and extend.
 
 ---
 
-If you find this tool useful, please ⭐ star the repository!
+## If you find this tool useful and have used it in your work, please ⭐ star the repository and cite the following:
+E. Lodh, “Streamlit-Based Interactive Trio VCF Analyzer for Structural Variant Interpretation”. Zenodo, Dec. 01, 2025. doi: [10.5281/zenodo.17781941](https://doi.org/10.5281/zenodo.17781941).
