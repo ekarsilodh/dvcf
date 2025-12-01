@@ -31,9 +31,17 @@ def save_count(c):
 total_views = load_count() + 1
 save_count(total_views)
 
-# Show in sidebar
+# Show in sidebar the app visit count
 st.sidebar.markdown("### 👁️ App Views")
 st.sidebar.info(f"Total views: **{total_views}**")
+
+#Zenodo DOI badge
+st.sidebar.markdown(
+    """
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.17781941.svg)](https://doi.org/10.5281/zenodo.17781941)
+""",
+    unsafe_allow_html=True,
+)
 
 # Nice qualitative palettes (Seaborn-like via Plotly)
 PALETTES = {
@@ -1066,3 +1074,68 @@ with footer_cols[1]:
 """,
         unsafe_allow_html=True,
     )
+
+#adding the citation block at the end
+st.markdown("---")
+st.markdown(
+    """
+**Citation**  
+If you use this software in your work, please cite:
+
+1. **Lodh, Ekarsi.** *Streamlit-Based Interactive Trio VCF Analyzer for Structural Variant Interpretation.* Zenodo, December 1, 2025. https://doi.org/10.5281/zenodo.17781941.
+
+2. **Lodh, Ekarsi.** *Delly-VCF-Trio-Analyzer: A Complete Pipeline for Trio-Based Structural Variant Interpretation.* Zenodo, December 1, 2025. https://doi.org/10.5281/zenodo.17781905.
+"""
+)
+
+st.sidebar.markdown("---")
+
+#showing the citations in the sidebar
+with st.sidebar.expander("📘 Citation"):
+    st.markdown(
+        """
+If you use this software in your work, please cite:
+
+1. **Lodh, Ekarsi.** *Streamlit-Based Interactive Trio VCF Analyzer for Structural Variant Interpretation.* Zenodo, December 1, 2025. https://doi.org/10.5281/zenodo.17781941.
+
+2. **Lodh, Ekarsi.** *Delly-VCF-Trio-Analyzer: A Complete Pipeline for Trio-Based Structural Variant Interpretation.* Zenodo, December 1, 2025. https://doi.org/10.5281/zenodo.17781905.
+        """
+    )
+
+#BibTex Citation of Zenodo DOI
+bibtex_text = r"""
+@software{lodh_2025_17781941,
+  author       = {Lodh, Ekarsi},
+  title        = {Streamlit-Based Interactive Trio VCF Analyzer for
+                   Structural Variant Interpretation
+                  },
+  month        = dec,
+  year         = 2025,
+  publisher    = {Zenodo},
+  version      = {v1.0.0},
+  doi          = {10.5281/zenodo.17781941},
+  url          = {https://doi.org/10.5281/zenodo.17781941},
+}
+
+@software{lodh_2025_17781905,
+  author       = {Lodh, Ekarsi},
+  title        = {Delly-VCF-Trio-Analyzer: A Complete Pipeline for
+                   Trio-Based Structural Variant Interpretation
+                  },
+  month        = dec,
+  year         = 2025,
+  publisher    = {Zenodo},
+  version      = {v1.0.0},
+  doi          = {10.5281/zenodo.17781905},
+  url          = {https://doi.org/10.5281/zenodo.17781905},
+}
+"""
+
+#download option for the bibtex .bib file
+st.sidebar.download_button(
+    label="⬇️ Download BibTeX Citation",
+    data=bibtex_text,
+    file_name="trio_vcf_analyzer_citations.bib",
+    mime="text/plain"
+)
+
