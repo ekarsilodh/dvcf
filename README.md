@@ -149,8 +149,8 @@ textColor="#c0caf5"
 
 ## 👨‍💻 Author
 **Ekarsi Lodh**  
-MSc Bioinformatics
-College of Medicine and Health
+MSc Bioinformatics  
+College of Medicine and Health  
 University of Birmingham  
 
 ---
