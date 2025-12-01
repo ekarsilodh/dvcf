@@ -1080,7 +1080,7 @@ st.markdown("---")
 st.markdown(
     """
 **Citation**  
-If you use this software in your work, please cite:
+If you use this tool in your work, please cite:
 
 1. **Lodh, Ekarsi.** *Streamlit-Based Interactive Trio VCF Analyzer for Structural Variant Interpretation.* Zenodo, December 1, 2025. https://doi.org/10.5281/zenodo.17781941.
 
